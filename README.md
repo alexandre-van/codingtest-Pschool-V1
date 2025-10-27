@@ -14,7 +14,6 @@ Coming from Git
 ```bash
 git clone git@github.com:alexandre-van/codingtest-Pschool-V1.git Pschool
 ```
-dotnet run --launch-profile https
 Or unzip the file and
 ```bash
 cd Pschool
