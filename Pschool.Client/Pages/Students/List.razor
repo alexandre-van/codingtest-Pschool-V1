@@ -1,0 +1,176 @@
+@page "/students/list"
+@using Pschool.Client.Models
+@using Pschool.Client.Services
+@inject IStudentsService StudentsService
+@inject IParentsService ParentsService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+
+<PageTitle>Students</PageTitle>
+
+
+<div class="container">
+    <h2>Students</h2>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label for="parentFilter" class="form-label">Filter by Parent:</label>
+            <select id="parentFilter" class="form-select" @bind="selectedParentId" @bind:after="FilterStudents">
+                <option value="0">-- All Parents --</option>
+                @if (parents != null)
+                {
+                    @foreach (var parent in parents)
+                    {
+                        <option value="@parent.Id">@parent.FirstName @parent.LastName</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <div>
+                <button @onclick="ResetFilter">Reset Filter</button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (filteredStudents == null || !filteredStudents.Any())
+    {
+        <p>No students found.</p>
+    }
+    else
+    {   
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Parent</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Home Address</th>
+                    <th>Phone1</th>
+                    <th>Work Phone</th>
+                    <th>Home Phone</th>
+                    <th>Siblings</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var student in filteredStudents)
+                {
+                    <tr>
+                        <td>@student.FirstName</td>
+                        <td>@student.LastName</td>
+                        <td>@GetParentName(student.ParentId)</td>
+                        <td>@student.Username</td>
+                        <td>@student.Email</td>
+                        <td>@student.HomeAddress</td>
+                        <td>@student.Phone1</td>
+                        <td>@student.WorkPhone</td>
+                        <td>@student.HomePhone</td>
+                        <td>@student.Siblings</td>
+                        <td>
+                            <button @onclick="() => EditStudent(student.Id)">
+                                Edit
+                            </button>
+                            <button @onclick="() => DeleteStudent(student.Id)">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code
+{
+    private List<StudentDTO>? allStudents;
+    private List<StudentDTO>? filteredStudents;
+    private List<ParentDTO>? parents;
+    private bool isLoading = true;
+    private int selectedParentId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        
+        var studentsTask = StudentsService.GetListStudentsAsync();
+        var parentsTask = ParentsService.GetListParentsAsync();
+        
+        await Task.WhenAll(studentsTask, parentsTask);
+        
+        allStudents = await studentsTask;
+        parents = await parentsTask;
+        
+        filteredStudents = allStudents;
+        
+        isLoading = false;
+    }
+
+    private void FilterStudents()
+    {
+        if (selectedParentId == 0)
+        {
+            filteredStudents = allStudents;
+        }
+        else
+        {
+            filteredStudents = allStudents?
+                .Where(s => s.ParentId == selectedParentId)
+                .ToList();
+        }
+    }
+
+    private void ResetFilter()
+    {
+        selectedParentId = 0;
+        FilterStudents();
+    }
+
+    private string GetParentName(int parentId)
+    {
+        var parent = parents?.FirstOrDefault(p => p.Id == parentId);
+        return parent != null ? $"{parent.FirstName} {parent.LastName}" : "N/A";
+    }
+
+    private void EditStudent(int studentId)
+    {
+        Navigation.NavigateTo($"/students/edit/{studentId}");
+    }
+
+    private async Task DeleteStudent(int studentId)
+    {
+        var studentSelected = filteredStudents?.First(p => p.Id == studentId);
+        
+        if (studentSelected == null) return;
+
+        // Notification invoking JS
+        if (await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Are you sure to delete {studentSelected.FirstName} {studentSelected.LastName} and his/her associated parent ?"))
+        {
+            await StudentsService.DeleteStudentAsync(studentId);
+
+            var studentToRemove = allStudents?.FirstOrDefault(p => p.Id == studentId);
+            if (studentToRemove != null)
+            {
+                allStudents?.Remove(studentToRemove);
+            }
+
+            FilterStudents();
+            StateHasChanged();
+        }
+    }
+}

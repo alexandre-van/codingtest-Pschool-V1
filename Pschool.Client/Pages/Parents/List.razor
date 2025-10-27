@@ -1,0 +1,105 @@
+@page "/parents/list"
+@using Microsoft.VisualBasic.FileIO
+@using Pschool.Client.Models
+@using Pschool.Client.Services
+@inject IParentsService ParentsService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+
+<PageTitle>Parents</PageTitle>
+
+
+<div class="container">
+    <h2>Parents</h2>
+
+    @if (isLoading)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (parents == null || !parents.Any())
+    {
+        <p>No parents found.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Home Address</th>
+                    <th>Phone1</th>
+                    <th>Work Phone</th>
+                    <th>Home Phone</th>
+                    <th>Siblings</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var parent in parents)
+                {
+                    <tr>
+                        <td>@parent.FirstName</td>
+                        <td>@parent.LastName</td>
+                        <td>@parent.Username</td>
+                        <td>@parent.Email</td>
+                        <td>@parent.HomeAddress</td>
+                        <td>@parent.Phone1</td>
+                        <td>@parent.WorkPhone</td>
+                        <td>@parent.HomePhone</td>
+                        <td>@parent.Siblings</td>
+                        <td>
+                            <button @onclick="() => EditParent(parent.Id)">
+                                Edit
+                            </button>
+                            <button @onclick="() => DeleteParent(parent.Id)">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code
+{
+    private List<ParentDTO>? parents;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadParents();
+    }
+
+    private async Task LoadParents()
+    {
+        isLoading = true;
+        parents = await ParentsService.GetListParentsAsync();
+        isLoading = false;
+    }
+    private void EditParent(int parentId)
+    {
+        Navigation.NavigateTo($"/parents/edit/{parentId}");
+    }
+    private async Task DeleteParent(int parentId)
+    {
+        var parentSelected = parents.First(p => p.Id == parentId);
+        // Notification invoking JS
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure to delete {parentSelected.FirstName} {parentSelected.LastName} and his/her associated child ?"))
+        {
+            await ParentsService.DeleteParentAsync(parentId);
+
+            var parentToRemove = parents?.FirstOrDefault(p => p.Id == parentId);
+            if (parentToRemove != null)
+            {
+                parents?.Remove(parentToRemove);
+                StateHasChanged();
+            }
+        }
+    }
+}

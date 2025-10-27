@@ -1,0 +1,86 @@
+@page "/students/edit/{studentId:int}"
+@using Pschool.Client.Models
+@using Pschool.Client.Services
+@inject IStudentsService StudentsService
+@inject NavigationManager Navigation
+
+<h3>Edit a student</h3>
+
+<EditForm Model="@studentDTO" OnValidSubmit="EditStudent">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <div>
+            <label>First Name:</label>
+            <InputText @bind-Value="studentDTO.FirstName"/>
+            <ValidationMessage For="@(() => studentDTO.FirstName)"/>
+        </div>
+        <div>
+            <label>Last Name:</label>
+            <InputText @bind-Value="studentDTO.LastName"/>
+            <ValidationMessage For="@(() => studentDTO.LastName)"/>
+        </div>
+        <div>
+            <label>Username:</label>
+            <InputText @bind-Value="studentDTO.Username"/>
+        </div>
+        <div>
+            <label>Email:</label>
+            <InputText @bind-Value="studentDTO.Email"/>
+            <ValidationMessage For="@(() => studentDTO.Email)"/>
+        </div>
+        <div>
+            <label>Home Address:</label>
+            <InputText @bind-Value="studentDTO.HomeAddress"/>
+        </div>
+        <div>
+            <label>Phone1:</label>
+            <InputText @bind-Value="studentDTO.Phone1"/>
+        </div>
+        <div>
+            <label>Work Phone:</label>
+            <InputText @bind-Value="studentDTO.WorkPhone"/>
+        </div>
+        <div>
+            <label>Home Phone:</label>
+            <InputText @bind-Value="studentDTO.HomePhone"/>
+        </div>
+        <div>
+            <label>Siblings:</label>
+            <InputNumber @bind-Value="studentDTO.Siblings"/>
+            <ValidationMessage For="@(() => studentDTO.Siblings)"/>
+        </div>
+    </div>
+
+    <button type="submit">Edit</button>
+    <button type="button" @onclick='() => Navigation.NavigateTo("/students/list")'>
+        Cancel
+    </button>
+</EditForm>
+
+@code
+{
+    [Parameter]
+    public int StudentId { get; set; }
+
+    private StudentDTO studentDTO = new StudentDTO();
+    private string message = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        studentDTO = await StudentsService.GetStudentAsync(StudentId);
+    }
+    private async Task EditStudent()
+    {
+        var success = await StudentsService.EditStudentAsync(StudentId, studentDTO);
+        if (success)
+        {
+            Navigation.NavigateTo("/students/list");
+            message = "student edited successfully";
+        }
+        else
+        {
+            message = "Error editing student";
+        }
+    }
+}
