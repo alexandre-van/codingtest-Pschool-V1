@@ -23,7 +23,7 @@ cd Pschool.API
 ```
 ___________________________
 Make sure postgresql is running and depending on your postgres user and password, you can change the values
-in Pschool/Pschool.API/appsettings.json line 3
+in Pschool.API/appsettings.json at line 3
 ```c#
 {
   "ConnectionStrings": {
